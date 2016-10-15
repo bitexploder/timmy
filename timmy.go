@@ -16,6 +16,52 @@ func (m *Mitmer) MitmConn() {
 		return
 	}
 
+	outc, err := net.Dial("tcp", fmt.Sprintf("%+v", origAddr))
+	if err != nil {
+		fmt.Println("err connecting to orig dst: ", err)
+		return
+	}
+
+	// Clean up
+	defer m.Conn.Close()
+	defer outc.Close()
+
+	go func() {
+		for {
+			b := make([]byte, 1024)
+			n, err := outc.Read(b)
+			if err != nil {
+				fmt.Println("err reading victim dest: ", err)
+				break
+			}
+			n, err = m.Conn.Write(b[:n])
+			fmt.Printf("Writing back to victim: %+v\n", b[:n])
+			if err != nil {
+				fmt.Println("err writing back to victim: ", err)
+				break
+			}
+
+		}
+	}()
+	// Set up the victim->server data pump
+	for {
+		b := make([]byte, 1024)
+		n, err := m.Conn.Read(b)
+		fmt.Printf("Read bytes[%d] from [%+v]\n", n, origAddr)
+
+		if err != nil {
+			fmt.Println("err reading victim: ", err)
+			break
+		}
+		n, err = outc.Write(b[:n])
+		fmt.Printf("Writing: %+v\n", b[:n])
+		if err != nil {
+			fmt.Println("err writing victim dest: ", err)
+			break
+		}
+
+	}
+
 	fmt.Printf("orig: %+v\n", origAddr)
 }
 
