@@ -35,7 +35,7 @@ func (m *Mitmer) MitmConn() {
 				break
 			}
 			n, err = m.Conn.Write(b[:n])
-			fmt.Printf("Writing back to victim: %+v\n", b[:n])
+			//fmt.Printf("Writing back to victim: %+v\n", b[:n])
 			if err != nil {
 				fmt.Println("err writing back to victim: ", err)
 				break
@@ -43,11 +43,12 @@ func (m *Mitmer) MitmConn() {
 
 		}
 	}()
+
 	// Set up the victim->server data pump
 	for {
 		b := make([]byte, 1024)
 		n, err := m.Conn.Read(b)
-		fmt.Printf("Read bytes[%d] from [%+v]\n", n, origAddr)
+		//fmt.Printf("Read bytes[%d] from [%+v]\n", n, origAddr)
 
 		if err != nil {
 			fmt.Println("err reading victim: ", err)
