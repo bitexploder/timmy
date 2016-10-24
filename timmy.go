@@ -6,10 +6,14 @@ import (
 )
 
 type Mitmer struct {
+	Conf    Config
 	InConn  net.Conn
 	OutConn net.Conn
 }
 
+func (m *Mitmer) GetDest() {
+
+}
 func (m *Mitmer) MitmConn() {
 	origAddr, err := GetOriginalDST(m.InConn.(*net.TCPConn))
 	if err != nil {
@@ -29,6 +33,7 @@ func (m *Mitmer) MitmConn() {
 	defer m.InConn.Close()
 	defer outc.Close()
 
+	// Setup the server->victim data pump
 	go func() {
 		for {
 			b := make([]byte, 1024)
@@ -71,7 +76,10 @@ func (m *Mitmer) MitmConn() {
 
 func main() {
 	fmt.Println("Timmy starting up")
-	//	s, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 20755})
+
+	conf := parseFlags()
+	fmt.Printf("Config: %+v\n", conf)
+
 	s, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 20755})
 	if err != nil {
 		fmt.Println("listen err: ", err)
