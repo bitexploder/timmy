@@ -6,24 +6,27 @@ import (
 )
 
 type Mitmer struct {
-	Conn *net.TCPConn
+	InConn  net.Conn
+	OutConn net.Conn
 }
 
 func (m *Mitmer) MitmConn() {
-	origAddr, err := GetOriginalDST(m.Conn)
+	origAddr, err := GetOriginalDST(m.InConn.(*net.TCPConn))
 	if err != nil {
 		fmt.Println("get orig addr err: ", err)
 		return
 	}
 
 	outc, err := net.Dial("tcp", fmt.Sprintf("%+v", origAddr))
+	m.OutConn = outc
+
 	if err != nil {
 		fmt.Println("err connecting to orig dst: ", err)
 		return
 	}
 
 	// Clean up
-	defer m.Conn.Close()
+	defer m.InConn.Close()
 	defer outc.Close()
 
 	go func() {
@@ -34,7 +37,7 @@ func (m *Mitmer) MitmConn() {
 				fmt.Println("err reading victim dest: ", err)
 				break
 			}
-			n, err = m.Conn.Write(b[:n])
+			n, err = m.InConn.Write(b[:n])
 			//fmt.Printf("Writing back to victim: %+v\n", b[:n])
 			if err != nil {
 				fmt.Println("err writing back to victim: ", err)
@@ -47,7 +50,7 @@ func (m *Mitmer) MitmConn() {
 	// Set up the victim->server data pump
 	for {
 		b := make([]byte, 1024)
-		n, err := m.Conn.Read(b)
+		n, err := m.InConn.Read(b)
 		//fmt.Printf("Read bytes[%d] from [%+v]\n", n, origAddr)
 
 		if err != nil {
@@ -55,7 +58,7 @@ func (m *Mitmer) MitmConn() {
 			break
 		}
 		n, err = outc.Write(b[:n])
-		fmt.Printf("Writing: %+v\n", b[:n])
+		//fmt.Printf("Writing: %+v\n", b[:n])
 		if err != nil {
 			fmt.Println("err writing victim dest: ", err)
 			break
@@ -82,7 +85,7 @@ func main() {
 			return
 		}
 
-		m := Mitmer{Conn: conn.(*net.TCPConn)}
+		m := Mitmer{InConn: conn.(*net.TCPConn)}
 		go m.MitmConn()
 	}
 }
