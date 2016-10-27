@@ -12,9 +12,12 @@ type Mitmer struct {
 }
 
 func (m *Mitmer) GetDest() {
-
+	remoteAddr := m.InConn.RemoteAddr
+	fmt.Printf("Remote Address: %+v\n", remoteAddr)
 }
 func (m *Mitmer) MitmConn() {
+	m.GetDest()
+
 	origAddr, err := GetOriginalDST(m.InConn.(*net.TCPConn))
 	if err != nil {
 		fmt.Println("get orig addr err: ", err)
@@ -77,10 +80,15 @@ func (m *Mitmer) MitmConn() {
 func main() {
 	fmt.Println("Timmy starting up")
 
-	conf := parseFlags()
+	conf, err := parseFlags()
+	if err != nil {
+		fmt.Println("err: ", err)
+		return
+	}
 	fmt.Printf("Config: %+v\n", conf)
 
 	s, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 20755})
+	x
 	if err != nil {
 		fmt.Println("listen err: ", err)
 		return
