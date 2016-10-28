@@ -77,6 +77,25 @@ func (m *Mitmer) MitmConn() {
 	fmt.Printf("orig: %+v\n", origAddr)
 }
 
+func listener(l *net.TCPListener, c chan net.Conn) {
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("accept err: ", err)
+			return
+		}
+		c <- conn
+	}
+}
+
+func connMitmer(c chan net.Conn) {
+	for {
+		conn := <-c
+		m := Mitmer{InConn: conn.(*net.TCPConn)}
+		go m.MitmConn()
+	}
+}
+
 func main() {
 	fmt.Println("Timmy starting up")
 
@@ -87,21 +106,44 @@ func main() {
 	}
 	fmt.Printf("Config: %+v\n", conf)
 
-	s, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 20755})
-	x
-	if err != nil {
-		fmt.Println("listen err: ", err)
-		return
-	}
+	listeners := make([]*net.TCPListener, 1)
 
-	for {
-		conn, err := s.Accept()
+	inC := make(chan net.Conn)
+
+	for port := range conf.Ports {
+		fmt.Println(port)
+		l, err := net.ListenTCP("tcp", &net.TCPAddr{Port: port})
 		if err != nil {
-			fmt.Println("accept err:", err)
+			fmt.Println("listen err: ", err)
 			return
 		}
+		append(listeners, l)
 
-		m := Mitmer{InConn: conn.(*net.TCPConn)}
-		go m.MitmConn()
 	}
+
+	//go listener(l, inC)
+	// s, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 20755})
+	// s2, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 8088})
+	// if err != nil {
+	// 	fmt.Println("listen err: ", err)
+	// 	return
+	// }
+
+	// inC := make(chan net.Conn)
+	// go listener(s, inC)
+	// go listener(s2, inC)
+
+	done := make(chan bool)
+	<-done
+
+	// for {
+	// 	conn, err := s.Accept()
+	// 	if err != nil {
+	// 		fmt.Println("accept err:", err)
+	// 		return
+	// 	}
+
+	// 	m := Mitmer{InConn: conn.(*net.TCPConn)}
+	// 	go m.MitmConn()
+	// }
 }
