@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 )
 
 type Mitmer struct {
@@ -11,9 +13,24 @@ type Mitmer struct {
 	OutConn net.Conn
 }
 
-func (m *Mitmer) GetDest() {
-	remoteAddr := m.InConn.RemoteAddr
-	fmt.Printf("Remote Address: %+v\n", remoteAddr)
+func (m *Mitmer) GetDest() *net.TCPAddr {
+	localAddr := m.InConn.LocalAddr()
+	fmt.Printf("Local Address: %+v\n", m.InConn.LocalAddr())
+	s := strings.Split(localAddr.String(), ":")
+	p, err := strconv.Atoi(s[1])
+	if err != nil {
+		fmt.Printf("GetDest: error converting port to integer")
+		// return invalid address / error here?
+	}
+	addr := net.TCPAddr{
+		net.ParseIP(s[0]),
+		p,
+		"",
+	}
+
+	fmt.Printf("New Addr: %+v\n", addr)
+
+	return &addr
 }
 func (m *Mitmer) MitmConn() {
 	m.GetDest()
@@ -106,7 +123,7 @@ func main() {
 	}
 	fmt.Printf("Config: %+v\n", conf)
 
-	listeners := make([]*net.TCPListener, 1)
+	listeners := make([]*net.TCPListener, 0)
 
 	inC := make(chan net.Conn)
 
@@ -117,10 +134,13 @@ func main() {
 			fmt.Println("listen err: ", err)
 			return
 		}
-		append(listeners, l)
-
+		listeners = append(listeners, l)
 	}
 
+	for _, l := range listeners {
+		go listener(l, inC)
+	}
+	go connMitmer(inC)
 	//go listener(l, inC)
 	// s, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 20755})
 	// s2, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 8088})

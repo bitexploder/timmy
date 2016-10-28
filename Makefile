@@ -17,3 +17,6 @@ deploy: linux
 	ssh $(SSH_ARGS) mitm "sudo supervisorctl stop timmy"
 	scp $(SSH_ARGS) timmy mitm:$(DEPLOY_PATH)
 	ssh $(SSH_ARGS) mitm "sudo supervisorctl start timmy"
+
+local:
+	go install
