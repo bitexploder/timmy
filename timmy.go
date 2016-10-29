@@ -33,7 +33,15 @@ func (m *Mitmer) GetDest() *net.TCPAddr {
 	return &addr
 }
 func (m *Mitmer) MitmConn() {
-	m.GetDest()
+	dest := m.GetDest()
+	fmt.Printf("dest: %+v, port: %d\n", dest, dest.Port)
+	fmt.Printf("m.Conf=%+v\n", m.Conf)
+	/*v, test := m.Conf.Ports[dest.Port]
+	fmt.Println("Value: ", v, "Present?", test)
+
+	if _, ok := m.Conf.Ports[dest.Port]; ok {
+		fmt.Printf("Port is mapped")
+	}*/
 
 	origAddr, err := GetOriginalDST(m.InConn.(*net.TCPConn))
 	if err != nil {
@@ -105,10 +113,13 @@ func listener(l *net.TCPListener, c chan net.Conn) {
 	}
 }
 
-func connMitmer(c chan net.Conn) {
+func connMitmer(c chan net.Conn, conf Config) {
 	for {
 		conn := <-c
-		m := Mitmer{InConn: conn.(*net.TCPConn)}
+		m := Mitmer{
+			InConn: conn.(*net.TCPConn),
+			Conf:   conf,
+		}
 		go m.MitmConn()
 	}
 }
@@ -140,7 +151,7 @@ func main() {
 	for _, l := range listeners {
 		go listener(l, inC)
 	}
-	go connMitmer(inC)
+	go connMitmer(inC, conf)
 	//go listener(l, inC)
 	// s, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 20755})
 	// s2, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 8088})
