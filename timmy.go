@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"runtime"
@@ -33,11 +34,11 @@ func (m *Mitmer) GetDest() *net.TCPAddr {
 
 	return &addr
 }
+
+var tlsConfig *tls.Config = &tls.Config{InsecureSkipVerify: true}
+
 func (m *Mitmer) MitmConn() {
 	dest := m.GetDest()
-	fmt.Printf("dest: %+v, port: %d\n", dest, dest.Port)
-	v, test := m.Conf.Ports[dest.Port]
-
 	var finalDest *net.TCPAddr
 	var err error
 
@@ -61,8 +62,14 @@ func (m *Mitmer) MitmConn() {
 		return
 	}
 
-	outc, err := net.Dial("tcp", fmt.Sprintf("%+v", finalDest))
-	m.OutConn = outc
+	var outc net.Conn
+	if m.Conf.TLSPorts.has(dest.Port) {
+		fmt.Printf("Connecting using TLS: %+v\n", m.Conf.Ports[dest.Port])
+		outc, err = tls.Dial("tcp", m.Conf.Ports[dest.Port], tlsConfig)
+	} else {
+		outc, err = net.Dial("tcp", m.Conf.Ports[dest.Port])
+		m.OutConn = outc
+	}
 
 	if err != nil {
 		fmt.Println("err connecting to orig dst: ", err)
@@ -164,29 +171,10 @@ func main() {
 		go listener(l, inC)
 	}
 	go connMitmer(inC, conf)
-	//go listener(l, inC)
-	// s, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 20755})
-	// s2, err := net.ListenTCP("tcp", &net.TCPAddr{Port: 8088})
-	// if err != nil {
-	// 	fmt.Println("listen err: ", err)
-	// 	return
-	// }
 
-	// inC := make(chan net.Conn)
-	// go listener(s, inC)
-	// go listener(s2, inC)
-
+	// Just wait forever here so other goroutines live on
+	// TODO: Gracefully exit some day
 	done := make(chan bool)
 	<-done
 
-	// for {
-	// 	conn, err := s.Accept()
-	// 	if err != nil {
-	// 		fmt.Println("accept err:", err)
-	// 		return
-	// 	}
-
-	// 	m := Mitmer{InConn: conn.(*net.TCPConn)}
-	// 	go m.MitmConn()
-	// }
 }
