@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -35,21 +36,32 @@ func (m *Mitmer) GetDest() *net.TCPAddr {
 func (m *Mitmer) MitmConn() {
 	dest := m.GetDest()
 	fmt.Printf("dest: %+v, port: %d\n", dest, dest.Port)
-	fmt.Printf("m.Conf=%+v\n", m.Conf)
-	/*v, test := m.Conf.Ports[dest.Port]
-	fmt.Println("Value: ", v, "Present?", test)
+	v, test := m.Conf.Ports[dest.Port]
+
+	var finalDest *net.TCPAddr
+	var err error
 
 	if _, ok := m.Conf.Ports[dest.Port]; ok {
-		fmt.Printf("Port is mapped")
-	}*/
-
-	origAddr, err := GetOriginalDST(m.InConn.(*net.TCPConn))
-	if err != nil {
-		fmt.Println("get orig addr err: ", err)
+		finalDest, err = net.ResolveTCPAddr("tcp4", m.Conf.Ports[dest.Port])
+		if err != nil {
+			fmt.Println("err: ", err)
+		}
+		fmt.Printf("Resolving address as: %+v\n", finalDest)
+	} else if runtime.GOOS == "linux" {
+		finalDest, err = GetOriginalDST(m.InConn.(*net.TCPConn))
+		if err != nil {
+			fmt.Println("get orig addr err: ", err)
+			return
+		}
+	} else {
+		// Bail out. Don't know what to do with the connection.
+		// This can happen if someone connects to the transparent MiTM port
+		// on a non-linux system
+		m.InConn.Close()
 		return
 	}
 
-	outc, err := net.Dial("tcp", fmt.Sprintf("%+v", origAddr))
+	outc, err := net.Dial("tcp", fmt.Sprintf("%+v", finalDest))
 	m.OutConn = outc
 
 	if err != nil {
@@ -99,7 +111,7 @@ func (m *Mitmer) MitmConn() {
 
 	}
 
-	fmt.Printf("orig: %+v\n", origAddr)
+	fmt.Printf("orig: %+v\n", finalDest)
 }
 
 func listener(l *net.TCPListener, c chan net.Conn) {
