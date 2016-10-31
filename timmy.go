@@ -64,8 +64,11 @@ func (m *Mitmer) MitmConn() {
 
 	var outc net.Conn
 	if m.Conf.TLSPorts.has(dest.Port) {
+		// Upgrade server socket to SSL here
+
 		fmt.Printf("Connecting using TLS: %+v\n", m.Conf.Ports[dest.Port])
 		outc, err = tls.Dial("tcp", m.Conf.Ports[dest.Port], tlsConfig)
+
 	} else {
 		outc, err = net.Dial("tcp", m.Conf.Ports[dest.Port])
 		m.OutConn = outc

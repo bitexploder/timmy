@@ -1,0 +1,26 @@
+[ req_distinguished_name ]
+countryName                     = Country Name (2 letter code)
+countryName_default             = US
+countryName_min                 = 2
+countryName_max                 = 2
+
+stateOrProvinceName             = State or Province Name (full name)
+stateOrProvinceName_default     = State of Entropy
+
+localityName                    = Locality Name (eg, city)
+localityName_default            = Internets
+
+0.organizationName              = Organization Name (eg, company)
+0.organizationName_default      = AAA
+
+1.organizationName              = Second Organization Name (eg, company)
+1.organizationName_default      = BBB
+
+organizationalUnitName          = Organizational Unit Name (eg, section)
+organizationalUnitName_default  = CCC
+
+commonName                      = Timmy CA
+commonName_max                  = 64
+
+emailAddress                    = someone@somedomain.com
+emailAddress_max                = 40
